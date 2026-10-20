@@ -1,0 +1,6 @@
+---
+# linux-init role default variables (override per environment in the
+# inventory group_vars / host_vars)
+timezone: Asia/Shanghai
+log_retention_days: 7
+journald_max_size: 500M

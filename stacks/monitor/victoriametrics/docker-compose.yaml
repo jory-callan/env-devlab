@@ -1,0 +1,43 @@
+services:
+  victoriametrics:
+    # Pinned to v1.152.0 (includes the v1.151.0 HTTP Basic Auth security fix)
+    image: victoriametrics/victoria-metrics:v1.152.0
+    container_name: victoriametrics
+    restart: always
+    networks:
+      - net-shared
+    ports:
+      - "8428:8428"
+    volumes:
+      - ./data:/data
+    command:
+      - '--storageDataPath=/data'
+      - '--httpListenAddr=:8428'
+      # Metric retention period (180 days, aligned with VictoriaLogs)
+      - '--retentionPeriod=180d'
+      # Cap memory usage at 80% of the container limit
+      - '--memory.allowedPercent=80'
+      # Structured logging
+      - '--loggerFormat=json'
+      - '--loggerOutput=stderr'
+      # Allow high query concurrency
+      - '--search.maxPointsPerTimeseries=300000'
+      - '--search.maxUniqueTimeseries=300000'
+      # Hard memory cap to prevent OOM (optional):
+      # - '--memory.allowedBytes=4GB'
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8428/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    environment:
+      - TZ=Asia/Shanghai
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+networks:
+  net-shared:
+    external: true

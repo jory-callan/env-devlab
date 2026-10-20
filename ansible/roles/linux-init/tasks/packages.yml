@@ -1,0 +1,98 @@
+---
+# Step 2: install base tool packages (Rocky / Ubuntu)
+#
+# Note: epel-release is deliberately NOT in these lists. It is installed
+# and mirror-configured in repos.yml, which runs before this file, so EPEL
+# packages are resolvable by the time this task executes.
+
+- name: Install base packages (RedHat)
+  package:
+    name:
+      # Base
+      - curl
+      - wget
+      - vim
+      - zip
+      - unzip
+      - tree
+      - jq
+      - bash-completion
+      # Network diagnostics
+      - tcpdump
+      - net-tools
+      - bind-utils
+      - lsof
+      - mtr
+      - socat
+      - iperf3
+      # System / performance
+      - htop
+      - iotop
+      - sysstat
+      - psmisc
+      - strace
+      - pv
+      - ncdu
+      # Storage
+      - nfs-utils
+      # Longhorn (distributed storage) prerequisites
+      - iscsi-initiator-utils   # iSCSI initiator, core Longhorn dependency
+      - device-mapper           # device mapper (dmsetup)
+      - e2fsprogs               # ext4 filesystem tools
+      - xfsprogs                # XFS filesystem tools
+      # Scheduled tasks / logging / permissions
+      - cronie                  # cron daemon
+      - logrotate               # required by the catch-all config in logging.yml
+      - acl                     # getfacl / setfacl
+      # Terminal / operations
+      - tmux
+      - rsync
+      - yum-utils
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install base packages (Debian)
+  package:
+    name:
+      # Base
+      - curl
+      - wget
+      - vim
+      - zip
+      - unzip
+      - tree
+      - jq
+      - bash-completion
+      # Network diagnostics
+      - tcpdump
+      - net-tools
+      - dnsutils
+      - lsof
+      - mtr
+      - socat
+      - iperf3
+      # System / performance
+      - htop
+      - iotop
+      - sysstat
+      - psmisc
+      - strace
+      - pv
+      - ncdu
+      # Storage
+      - nfs-common
+      # Longhorn (distributed storage) prerequisites
+      - open-iscsi              # iSCSI initiator, core Longhorn dependency
+      - dmsetup                 # device mapper
+      - e2fsprogs               # ext4 filesystem tools
+      - xfsprogs                # XFS filesystem tools
+      # Scheduled tasks / logging / permissions / repo management
+      - cron                    # cron daemon
+      - logrotate               # required by the catch-all config in logging.yml
+      - acl                     # getfacl / setfacl
+      - software-properties-common  # provides add-apt-repository
+      # Terminal / operations
+      - tmux
+      - rsync
+    state: present
+  when: ansible_os_family == "Debian"

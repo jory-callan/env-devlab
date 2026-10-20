@@ -1,0 +1,26 @@
+services:
+  mysql5:
+    image: mysql:5.7
+    container_name: mysql5
+    restart: always
+    environment:
+      TZ: 'Asia/Shanghai'
+      # Allow root login from any host (dev lab only)
+      MYSQL_ROOT_HOST: '%'
+      # Credentials come from .env; Admin123 is the fallback password
+      MYSQL_ROOT_PASSWORD: '${MYSQL_ROOT_PASSWORD:-Admin123}'
+    networks:
+      - net-shared
+    ports:
+      - '3306:3306'
+    volumes:
+      # Read-only host timezone, keeps the container clock in sync
+      - /etc/timezone:/etc/timezone:ro
+      - ${ROOT_DIR}/conf/my.cnf:/etc/mysql/my.cnf
+      - ${ROOT_DIR}/logs:/var/log/mysql
+      - ${ROOT_DIR}/data:/var/lib/mysql
+      - ${ROOT_DIR}/files:/var/lib/mysql-files
+
+networks:
+  net-shared:
+    external: true

@@ -1,0 +1,26 @@
+services:
+  valkey:
+    # Official Valkey image. The legacy stack used bitnami/valkey:latest,
+    # but Bitnami moved versioned tags to their legacy repository, so the
+    # official Linux Foundation image is used instead (pinned 9.1.2).
+    image: valkey/valkey:9.1.2-alpine
+    container_name: valkey
+    restart: always
+    # Host network mode: Valkey listens on 6379 directly on the host.
+    # Alternative: comment this out and use the net-shared network plus the
+    # port mapping below.
+    network_mode: host
+    # networks:
+    #   - net-shared
+    # ports:
+    #   - '6379:6379'
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ${ROOT_DIR}/data:/data
+    command:
+      # Password injected from .env; the default database is 0.
+      valkey-server --requirepass ${VALKEY_PASSWORD:-Admin123}
+
+# Note: the data directory must be writable by the container user.
+#   mkdir -p ./data && chmod 777 ./data

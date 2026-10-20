@@ -1,0 +1,14 @@
+---
+# docker role default variables (override per environment in the
+# inventory group_vars / host_vars)
+
+# Docker data directory; point it at a dedicated data disk when used
+docker_data_root: /var/lib/docker
+
+# Registry mirrors. An unreachable mirror makes every pull time out, so
+# it is disabled by default.
+docker_registry_mirrors: []
+
+# Container log rotation
+docker_log_max_size: 100m
+docker_log_max_file: 3

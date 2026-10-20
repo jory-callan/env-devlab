@@ -1,0 +1,58 @@
+# MirrorProxy service: a single proxy for Docker Hub, GHCR, Quay and other
+# container registries. The image tag is pinned to avoid the unpredictability
+# of "latest".
+
+services:
+  mirrorproxy:
+    # Use an explicit version tag; "latest" is not allowed
+    image: kudang/mirrorproxy:1.4.2
+    container_name: mirrorproxy
+    restart: unless-stopped
+    networks:
+      - net-shared
+    ports:
+      # Host port (overridable via MIRRORPROXY_PORT in .env) : container port
+      - "${MIRRORPROXY_PORT:-3000}:3000"
+    environment:
+      # Publicly reachable URL. In production set this to your domain,
+      # e.g. https://mirror.example.com. When empty, MirrorProxy infers it
+      # from the browser request.
+      MIRRORPROXY_PUBLIC_BASE_URL: ${MIRRORPROXY_PUBLIC_BASE_URL:-}
+
+      # Trusted reverse-proxy IPs/CIDRs used to resolve the real client IP.
+      # Change to the proxy container IP or subnet when Nginx/Caddy runs on
+      # the same Docker network.
+      MIRRORPROXY_TRUSTED_PROXIES: ${MIRRORPROXY_TRUSTED_PROXIES:-127.0.0.1,::1}
+
+      # Timezone for monthly quota accounting ("local" = system timezone)
+      MIRRORPROXY_QUOTA_TIMEZONE: ${MIRRORPROXY_QUOTA_TIMEZONE:-local}
+
+      # Initial admin password. When empty, the first start generates a
+      # random password and prints it to the log. Set a strong password in
+      # .env.
+      MIRRORPROXY_ADMIN_PASSWORD: ${MIRRORPROXY_ADMIN_PASSWORD:-}
+
+      # Log level: server=info means info-level logs for the service
+      RUST_LOG: ${RUST_LOG:-mirrorproxy_server=info,tower_http=info}
+    volumes:
+      # Persistent data: SQLite database, cache and GeoIP data all live in
+      # this volume. Keep it across upgrades to retain all data.
+      - mirrorproxy-data:/data
+      - ./config.toml:/etc/mirrorproxy/config.toml:ro
+    healthcheck:
+      # Health endpoint used to decide whether the container serves traffic
+      test: ["CMD", "curl", "--fail", "--silent", "--show-error", "http://127.0.0.1:3000/healthz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+volumes:
+  # Named volume managed by Docker. To use a host directory instead
+  # (e.g. /srv/mirrorproxy/data:/data) it must be writable by UID/GID
+  # 10001:10001.
+  mirrorproxy-data:
+
+networks:
+  net-shared:
+    external: true

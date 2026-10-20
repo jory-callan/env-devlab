@@ -1,0 +1,13 @@
+---
+# Environment-level variables only: put values that differ per environment
+# here. Role defaults live in roles/<role>/defaults/main.yml - do not
+# duplicate the defaults in this file.
+
+# --- docker (example: uncomment when a reachable mirror is available) ---
+# docker_registry_mirrors:
+#   - http://192.168.5.103:5000
+# docker_data_root: /data/docker
+
+# --- linux-init (example) ---
+# timezone: Asia/Shanghai
+# log_retention_days: 14

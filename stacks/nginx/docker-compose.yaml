@@ -1,0 +1,31 @@
+services:
+  nginx:
+    image: nginx:1.28.0
+    container_name: nginx
+    restart: "always"
+    environment:
+      TZ: 'Asia/Shanghai'
+    networks:
+      - net-shared
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ${ROOT_DIR}/nginx.conf:/etc/nginx/nginx.conf   # main configuration
+      - ${ROOT_DIR}/conf.d/:/etc/nginx/conf.d/         # site configurations
+      - ${ROOT_DIR}/ssl/:/etc/nginx/ssl/               # SSL certificates
+      - ${ROOT_DIR}/html/:/html/                       # web roots
+      - ${ROOT_DIR}/logs/:/var/log/nginx/              # access and error logs
+    # healthcheck:
+    #   test: "curl -f http://localhost:443/api/health/"
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 3
+    #   start_period: 60s
+
+# Note: anotherconfig/ holds an alternative configuration set that is NOT
+# mounted by this compose file. Copy its contents over conf.d/ to use it.
+
+networks:
+  net-shared:
+    external: true

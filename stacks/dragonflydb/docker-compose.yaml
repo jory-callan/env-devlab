@@ -1,0 +1,24 @@
+services:
+  dragonflyDB:
+    # Pinned to v1.40.1 (latest stable 1.x line as of 2026-10).
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:v1.40.1
+    container_name: dragonflyDB
+    restart: always
+    # Alternative to bridge networking: network_mode: host
+    networks:
+      - net-shared
+    ports:
+      # Host 6377 -> container 6379
+      - '6377:6379'
+    volumes:
+      - ${ROOT_DIR}/data:/data
+    ulimits:
+      # rtprio: 95
+      memlock: -1
+    command:
+      # Password injected from .env as a CLI argument.
+      dragonfly --requirepass ${DRAGONFLY_PASSWORD:-Admin123}
+
+networks:
+  net-shared:
+    external: true

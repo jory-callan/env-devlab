@@ -1,0 +1,26 @@
+---
+# Step 4: disable swap (required by k8s)
+#
+# Idempotency guarantees:
+#   - swapoff runs only when an active swap exists (based on the
+#     ansible_swaptotal_mb fact, no shell probing needed)
+#   - fstab entries are commented out with the replace module, whose
+#     regexp excludes already-commented lines, so repeated runs converge
+#   - no more changed_when: false; the change status is reported honestly
+
+- name: Check whether /etc/fstab exists
+  stat:
+    path: /etc/fstab
+  register: etc_fstab
+
+- name: Turn off active swap
+  command: swapoff -a
+  when: ansible_swaptotal_mb | default(0) | int > 0
+
+- name: Comment out swap entries in fstab
+  replace:
+    path: /etc/fstab
+    regexp: '^([^#\n].*\s+swap\s+.*)$'
+    replace: '# \1'
+    backup: yes
+  when: etc_fstab.stat.exists

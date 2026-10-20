@@ -1,0 +1,36 @@
+# {{ ansible_managed }}
+# Rocky Linux repo - Aliyun mirror
+
+[baseos]
+name=Rocky Linux $releasever - BaseOS
+baseurl=https://mirrors.aliyun.com/rockylinux/$releasever/BaseOS/$basearch/os/
+gpgcheck=1
+enabled=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-$releasever
+
+[appstream]
+name=Rocky Linux $releasever - AppStream
+baseurl=https://mirrors.aliyun.com/rockylinux/$releasever/AppStream/$basearch/os/
+gpgcheck=1
+enabled=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-$releasever
+
+[extras]
+name=Rocky Linux $releasever - Extras
+baseurl=https://mirrors.aliyun.com/rockylinux/$releasever/extras/$basearch/os/
+gpgcheck=1
+enabled=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-$releasever
+
+{% if ansible_distribution_major_version | int <= 8 %}
+[powertools]
+name=Rocky Linux $releasever - PowerTools
+baseurl=https://mirrors.aliyun.com/rockylinux/$releasever/PowerTools/$basearch/os/
+{% else %}
+[crb]
+name=Rocky Linux $releasever - CRB
+baseurl=https://mirrors.aliyun.com/rockylinux/$releasever/CRB/$basearch/os/
+{% endif %}
+gpgcheck=1
+enabled=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-$releasever

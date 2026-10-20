@@ -1,0 +1,43 @@
+---
+# Step 6: log rotation configuration
+
+# Use a drop-in for journald instead of overwriting the distro-shipped
+# /etc/systemd/journald.conf (the systemd-recommended approach, no
+# conflicts with package upgrades)
+- name: Create the journald configuration directory
+  file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    mode: '0755'
+
+- name: Configure journald log limits
+  copy:
+    dest: /etc/systemd/journald.conf.d/99-limits.conf
+    content: |
+      [Journal]
+      SystemMaxUse={{ journald_max_size | default('500M') }}
+      SystemMaxFileSize=100M
+      MaxRetentionSec={{ (log_retention_days | default(7)) * 86400 }}
+      ForwardToSyslog=no
+      RuntimeMaxUse=100M
+    mode: '0644'
+  notify: restart journald
+
+- name: Configure the global logrotate catch-all
+  copy:
+    dest: /etc/logrotate.d/catch-all
+    content: |
+      # Global catch-all: matches .log files up to two levels below /var/log/
+      # Deeper paths (e.g. /var/log/a/b/c.log) are handled by the roles of
+      # the respective services
+      /var/log/*.log
+      /var/log/*/*.log {
+          daily
+          rotate {{ log_retention_days | default(7) }}
+          compress
+          delaycompress
+          missingok
+          notifempty
+          copytruncate
+      }
+    mode: '0644'

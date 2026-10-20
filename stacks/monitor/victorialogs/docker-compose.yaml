@@ -1,0 +1,41 @@
+services:
+  victorialogs:
+    # Internal mirror of victoriametrics/victoria-logs. If your host can
+    # reach the public registry, replace with:
+    #   victoriametrics/victoria-logs:v1.23.3-victorialogs
+    image: victoriametrics/victoria-logs:v1.23.3-victorialogs
+    container_name: victorialogs
+    restart: always
+    networks:
+      - net-shared
+    ports:
+      - "9428:9428"
+    volumes:
+      - ./data:/data
+    command:
+      - '--storageDataPath=/data'
+      - '--httpListenAddr=:9428'
+      # Log retention period (180 days, aligned with VictoriaMetrics)
+      - '--retentionPeriod=180d'
+      - '--loggerFormat=json'
+      - '--loggerOutput=stderr'
+      # Maximum number of concurrent insert requests
+      - '--maxConcurrentInserts=16'
+      # Cap memory usage at 80% of the container limit
+      - '--memory.allowedPercent=80'
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9428/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    environment:
+      - TZ=Asia/Shanghai
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+networks:
+  net-shared:
+    external: true

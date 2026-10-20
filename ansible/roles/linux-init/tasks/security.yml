@@ -1,0 +1,36 @@
+---
+# Step 7: security components (SELinux / AppArmor, Firewalld / UFW)
+
+# The runtime is set to the disabled domain by user policy. setenforce
+# fails when SELinux is already disabled, so the ansible_selinux fact is
+# used to skip it instead of hiding errors with failed_when.
+- name: Disable SELinux at runtime (RedHat)
+  command: setenforce 0
+  when:
+    - ansible_os_family == "RedHat"
+    - ansible_selinux.status is defined
+    - ansible_selinux.status != "disabled"
+  changed_when: false
+
+- name: Persist SELINUX=disabled (RedHat)
+  replace:
+    path: /etc/selinux/config
+    regexp: '^SELINUX=.*'
+    replace: 'SELINUX=disabled'
+  when: ansible_os_family == "RedHat"
+
+- name: Stop firewalld (RedHat)
+  systemd:
+    name: firewalld
+    state: stopped
+    enabled: no
+  ignore_errors: true
+  when: ansible_os_family == "RedHat"
+
+- name: Stop ufw (Debian)
+  systemd:
+    name: ufw
+    state: stopped
+    enabled: no
+  ignore_errors: true
+  when: ansible_os_family == "Debian"

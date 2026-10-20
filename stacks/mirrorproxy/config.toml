@@ -1,0 +1,96 @@
+# MirrorProxy full configuration reference.
+#
+# Note: under the Docker deployment most defaults are overridden by
+# environment variables (see docker-compose.yaml). This file exists for
+# custom upstreams and advanced configuration only.
+
+# ==================== Top-level configuration ====================
+
+# IP and port the HTTP server binds to (overridden to 0.0.0.0:3000 in the
+# Docker image)
+listen_addr = "0.0.0.0:3000"
+
+# SQLite database file path (overridden to /data/mirrorproxy.sqlite3 in the
+# Docker image)
+database_path = "/data/mirrorproxy.sqlite3"
+
+# Externally reachable public URL (a trailing slash is stripped automatically).
+# Prefer setting MIRRORPROXY_PUBLIC_BASE_URL in .env over hardcoding it here.
+public_base_url = "https://mirror.example.com"
+
+# Forward the client Authorization header to the upstream registry.
+# Default false; private registry setups may need true.
+forward_client_authorization = false
+
+# List of proxy adapters to activate. When omitted, all adapters are enabled.
+# The "oci" adapter handles Docker Hub, GHCR, Quay, the K8s registry and
+# other OCI-compatible registries.
+enabled_proxies = [
+    "oci",
+    # Other common ecosystems, enable as needed:
+    # "github",
+    # "npm",
+    # "pypi",
+    # "crates",
+    # "go",
+    # "maven",
+    # "nuget",
+    # "rubygems",
+    # "composer",
+]
+
+# ==================== Upstream addresses ====================
+# The [upstreams] table maps logical names to real upstream base URLs.
+# All upstreams ship with sensible defaults pointing at the official public
+# registries. Only override an entry to point at a private or internal
+# registry.
+
+[upstreams]
+# ---- Container and OCI related ----
+# Official Docker Hub registry endpoint
+docker_hub = "https://registry-1.docker.io"
+
+# GitHub Container Registry
+ghcr = "https://ghcr.io"
+
+# Quay.io
+quay = "https://quay.io"
+
+# Kubernetes official image registry
+kubernetes = "https://registry.k8s.io"
+
+# Google Container Registry
+gcr = "https://gcr.io"
+
+# Microsoft Container Registry
+mcr = "https://mcr.microsoft.com"
+
+# ---- Other ecosystems (uncomment when needed) ----
+# github = "https://github.com"
+# github_raw = "https://raw.githubusercontent.com"
+# packagist = "https://repo.packagist.org"
+# npm = "https://registry.npmjs.org"
+# pypi = "https://pypi.org"
+# crates = "https://crates.io"
+# go_proxy = "https://proxy.golang.org"
+# maven = "https://repo.maven.apache.org/maven2"
+# nuget = "https://api.nuget.org"
+# rubygems = "https://rubygems.org"
+# composer = "https://repo.packagist.org"
+
+# ==================== Other optional settings ====================
+# The settings below are not fully documented upstream but can be overridden
+# via environment variables. Confirm the exact TOML format against the
+# project source before enabling them here.
+
+# [cache]
+# directory = "/data/cache"
+# max_size = "10GB"
+# ttl = "7d"
+
+# [quota]
+# monthly_limit = "100GB"
+# timezone = "local"
+
+# [rate_limit]
+# enabled = false

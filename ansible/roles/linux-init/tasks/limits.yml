@@ -1,0 +1,28 @@
+---
+# Step 5: configure ulimit
+
+# limits.d only applies to PAM sessions (e.g. SSH logins); it has no
+# effect on systemd services. The file descriptor limit for services
+# such as kubelet/containerd needs a systemd drop-in instead.
+- name: Configure systemd limits
+  copy:
+    dest: /etc/systemd/system.conf.d/99-k8s-limits.conf
+    content: |
+      [Manager]
+      DefaultLimitNOFILE=1048576:1048576
+      DefaultLimitNPROC=infinity
+      DefaultLimitSTACK=10240:32768
+    mode: '0644'
+  notify: reload systemd
+
+- name: Configure PAM limits (SSH login sessions)
+  copy:
+    dest: /etc/security/limits.d/99-k8s-limits.conf
+    content: |
+      *       soft    nofile     1048576
+      *       hard    nofile     1048576
+      *       soft    nproc      unlimited
+      *       hard    nproc      unlimited
+      *       soft    stack      10240
+      *       hard    stack      32768
+    mode: '0644'

@@ -1,0 +1,30 @@
+---
+# linux-init role task entry
+# Tasks are split into step files. Every import carries tags so single
+# steps can be run in isolation:
+#   ansible-playbook playbooks/linux-init.yml --tags swap
+#   ansible-playbook playbooks/linux-init.yml --skip-tags security
+
+- import_tasks: hostname.yml
+  tags: [hostname, timezone]
+
+- import_tasks: repos.yml
+  tags: [repos, mirror]
+
+- import_tasks: packages.yml
+  tags: [packages]
+
+- import_tasks: kernel.yml
+  tags: [kernel, sysctl, modules]
+
+- import_tasks: swap.yml
+  tags: [swap]
+
+- import_tasks: limits.yml
+  tags: [limits, ulimit]
+
+- import_tasks: logging.yml
+  tags: [logging, journald, logrotate]
+
+- import_tasks: security.yml
+  tags: [security, selinux, firewall]

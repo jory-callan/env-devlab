@@ -1,0 +1,21 @@
+---
+# docker role task entry
+# Tags allow single-step runs:
+#   ansible-playbook playbooks/docker.yml --tags configure
+
+- name: Check whether Docker is already installed
+  command: docker --version
+  register: docker_check
+  changed_when: false
+  failed_when: false
+  tags: [docker, check]
+
+- import_tasks: install.yml
+  when: docker_check.rc != 0
+  tags: [docker, install]
+
+- import_tasks: configure.yml
+  tags: [docker, configure]
+
+- import_tasks: service.yml
+  tags: [docker, service]

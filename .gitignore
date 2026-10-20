@@ -1,0 +1,24 @@
+# ai agent
+.cline/
+.codex/
+.continue/
+.cursor/
+.qoder/
+.pi/
+.opencode/
+.omp/
+.trae/
+.agents/
+.zed/
+.workbuddy/
+
+# Runtime data directories of the stacks (never commit service data)
+stacks/**/data
+stacks/**/logs
+stacks/**/files
+stacks/**/victoria-logs-data
+stacks/**/victoria-metrics-data
+stacks/**/grafana-data
+
+# Note: stacks/*/.env files are intentionally TRACKED in git (dev lab
+# credentials). Do not add a .env ignore rule here.

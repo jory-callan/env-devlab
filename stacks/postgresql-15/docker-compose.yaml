@@ -1,0 +1,26 @@
+services:
+  postgres15:
+    image: postgres:15.5-alpine3.17
+    container_name: postgres15
+    restart: unless-stopped
+    environment:
+      TZ: 'Asia/Shanghai'
+      # Credentials come from .env; Admin123 is the fallback password
+      POSTGRES_USER: '${POSTGRES_USER:-postgres}'
+      POSTGRES_PASSWORD: '${POSTGRES_PASSWORD:-Admin123}'
+      POSTGRES_DB: '${POSTGRES_DB:-postgres}'
+    networks:
+      - net-shared
+    ports:
+      - '5432:5432'
+    volumes:
+      # Read-only host clock, keeps the container time in sync
+      - /etc/localtime:/etc/localtime:ro
+      - ${ROOT_DIR}/data:/var/lib/postgresql/data
+      # conf/postgresql.conf is intentionally NOT mounted: it is a reference
+      # profile that depends on extensions absent from the official image
+      # (see the header comment in that file).
+
+networks:
+  net-shared:
+    external: true

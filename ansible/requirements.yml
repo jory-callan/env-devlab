@@ -1,0 +1,6 @@
+---
+# Collections required by the linux-init / docker roles:
+#   community.general -> hostname / timezone modules
+collections:
+  - name: community.general
+    version: ">=8.0.0"

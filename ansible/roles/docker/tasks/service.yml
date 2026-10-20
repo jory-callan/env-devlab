@@ -1,0 +1,17 @@
+---
+# Step 3: start Docker and verify
+
+- name: Start and enable Docker
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Verify the Docker version
+  command: docker --version
+  register: docker_ver
+  changed_when: false
+
+- name: Print the version
+  debug:
+    msg: "Docker installation complete: {{ docker_ver.stdout }}"

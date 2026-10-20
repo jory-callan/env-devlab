@@ -1,0 +1,58 @@
+services:
+  fluentbit:
+    image: fluent/fluent-bit:3.0.7
+    container_name: fluentbit
+    restart: always
+    networks:
+      - net-shared
+    ports:
+      - "2020:2020"    # HTTP monitoring port
+      - "24224:24224"  # Forward input port
+      - "5140:5140"    # Syslog input port
+    volumes:
+      - ./conf/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./logs:/var/log:ro
+      # Read all container logs produced by the Docker daemon
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      # Read host logs under /var/log (mounted at /host/var/log)
+      - /var/log:/host/var/log:ro
+    environment:
+      - TZ=Asia/Shanghai
+      - FLUENT_CONF=fluent-bit.conf
+      - FLUENT_OPT=
+      # VictoriaLogs endpoint; the default is the victorialogs service name
+      # on the shared network (override in ../.env for remote deployments)
+      - VICTORIA_LOGS_HOST=${VICTORIA_LOGS_HOST:-victorialogs}
+      - VICTORIA_LOGS_PORT=${VICTORIA_LOGS_PORT:-9428}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2020/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+  # Helper container for Fluent Bit configuration reloads: it only watches
+  # the conf/ directory and prints the reload hint.
+  fluentbit-reload:
+    image: alpine:3.24
+    container_name: fluentbit-reload
+    restart: "no"
+    volumes:
+      - ./conf:/conf
+    command: |
+      sh -c "
+        echo 'Fluent Bit config watcher container started'
+        echo 'Config location: /conf/'
+        echo 'Reload command: docker kill -s HUP fluentbit'
+        echo 'VictoriaLogs address: \${VICTORIA_LOGS_HOST:-victorialogs}:\${VICTORIA_LOGS_PORT:-9428}'
+        sleep infinity
+      "
+
+networks:
+  net-shared:
+    external: true

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RGB颜色混合实验室</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            padding: 20px;
+            transition: background 0.5s ease;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .subtitle {
+            color: #e0e0e0;
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+        
+        .color-display {
+            width: 100%;
+            height: 200px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .color-display::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, 
+                rgba(255, 0, 0, 0.3), 
+                rgba(0, 255, 0, 0.3), 
+                rgba(0, 0, 255, 0.3));
+            opacity: 0.5;
+            z-index: 0;
+        }
+        
+        .color-info {
+            position: relative;
+            z-index: 1;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px 25px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .hex-value {
+            color: white;
+            font-size: 1.8rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .copy-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+        
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .copy-btn:active {
+            transform: translateY(0);
+        }
+        
+        .sliders {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            color: white;
+        }
+        
+        .slider-name {
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .color-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .red-indicator {
+            background-color: #ff0000;
+        }
+        
+        .green-indicator {
+            background-color: #00ff00;
+        }
+        
+        .blue-indicator {
+            background-color: #0000ff;
+        }
+        
+        .slider-value {
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 3px 10px;
+            border-radius: 20px;
+            min-width: 40px;
+            text-align: center;
+        }
+        
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 12px;
+            border-radius: 10px;
+            outline: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        #red-slider {
+            background: linear-gradient(to right, #000, #ff0000);
+        }
+        
+        #red-slider::-webkit-slider-thumb {
+            background: #ff0000;
+            border: 2px solid white;
+        }
+        
+        #green-slider {
+            background: linear-gradient(to right, #000, #00ff00);
+        }
+        
+        #green-slider::-webkit-slider-thumb {
+            background: #00ff00;
+            border: 2px solid white;
+        }
+        
+        #blue-slider {
+            background: linear-gradient(to right, #000, #0000ff);
+        }
+        
+        #blue-slider::-webkit-slider-thumb {
+            background: #0000ff;
+            border: 2px solid white;
+        }
+        
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .instructions {
+            max-width: 70%;
+            line-height: 1.5;
+        }
+        
+        .reset-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .reset-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: rgba(40, 40, 40, 0.9);
+            color: #4ade80;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.4s ease;
+            z-index: 1000;
+        }
+        
+        .notification.show {
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .color-display {
+                height: 180px;
+            }
+            
+            .hex-value {
+                font-size: 1.5rem;
+            }
+            
+            .footer {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .instructions {
+                max-width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>RGB颜色混合实验室</h1>
+            <p class="subtitle">拖动滑块实时混合颜色，探索RGB色彩世界</p>
+        </header>
+        
+        <div class="color-display" id="colorDisplay">
+            <div class="color-info">
+                <div class="hex-value" id="hexValue">#FF0000</div>
+                <button class="copy-btn" id="copyBtn">复制HEX码</button>
+            </div>
+        </div>
+        
+        <div class="sliders">
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span class="slider-name">
+                        <span class="color-indicator red-indicator"></span>
+                        红色 (R)
+                    </span>
+                    <span class="slider-value" id="redValue">255</span>
+                </div>
+                <input type="range" min="0" max="255" value="255" class="slider" id="red-slider">
+            </div>
+            
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span class="slider-name">
+                        <span class="color-indicator green-indicator"></span>
+                        绿色 (G)
+                    </span>
+                    <span class="slider-value" id="greenValue">0</span>
+                </div>
+                <input type="range" min="0" max="255" value="0" class="slider" id="green-slider">
+            </div>
+            
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span class="slider-name">
+                        <span class="color-indicator blue-indicator"></span>
+                        蓝色 (B)
+                    </span>
+                    <span class="slider-value" id="blueValue">0</span>
+                </div>
+                <input type="range" min="0" max="255" value="0" class="slider" id="blue-slider">
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div class="instructions">
+                提示：拖动滑块调整红、绿、蓝三原色的值（0-255），混合结果将实时显示在上方。
+                点击"复制HEX码"按钮可将当前颜色值复制到剪贴板。
+            </div>
+            <button class="reset-btn" id="resetBtn">重置颜色</button>
+        </div>
+    </div>
+    
+    <div class="notification" id="notification">HEX码已复制到剪贴板！</div>
+    
+    <script>
+        // 获取DOM元素
+        const redSlider = document.getElementById('red-slider');
+        const greenSlider = document.getElementById('green-slider');
+        const blueSlider = document.getElementById('blue-slider');
+        const redValue = document.getElementById('redValue');
+        const greenValue = document.getElementById('greenValue');
+        const blueValue = document.getElementById('blueValue');
+        const colorDisplay = document.getElementById('colorDisplay');
+        const hexValue = document.getElementById('hexValue');
+        const copyBtn = document.getElementById('copyBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const notification = document.getElementById('notification');
+        const body = document.body;
+        
+        // 初始化颜色
+        let red = 255;
+        let green = 0;
+        let blue = 0;
+        
+        // 更新颜色显示
+        function updateColor() {
+            // 更新显示值
+            redValue.textContent = red;
+            greenValue.textContent = green;
+            blueValue.textContent = blue;
+            
+            // 生成HEX颜色码
+            const hexColor = `#${componentToHex(red)}${componentToHex(green)}${componentToHex(blue)}`;
+            hexValue.textContent = hexColor;
+            
+            // 更新颜色显示区域
+            colorDisplay.style.backgroundColor = hexColor;
+            
+            // 更新页面背景渐变
+            const complementaryColor = `rgb(${255 - red}, ${255 - green}, ${255 - blue})`;
+            body.style.background = `linear-gradient(135deg, ${hexColor}, ${complementaryColor})`;
+        }
+        
+        // 将RGB分量转换为十六进制
+        function componentToHex(c) {
+            const hex = c.toString(16);
+            return hex.length === 1 ? "0" + hex : hex;
+        }
+        
+        // 滑块事件监听
+        redSlider.addEventListener('input', function() {
+            red = parseInt(this.value);
+            updateColor();
+        });
+        
+        greenSlider.addEventListener('input', function() {
+            green = parseInt(this.value);
+            updateColor();
+        });
+        
+        blueSlider.addEventListener('input', function() {
+            blue = parseInt(this.value);
+            updateColor();
+        });
+        
+        // 复制按钮事件
+        copyBtn.addEventListener('click', function() {
+            const hexCode = hexValue.textContent;
+            navigator.clipboard.writeText(hexCode).then(() => {
+                // 显示通知
+                notification.classList.add('show');
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 2000);
+            });
+        });
+        
+        // 重置按钮事件
+        resetBtn.addEventListener('click', function() {
+            redSlider.value = 255;
+            greenSlider.value = 0;
+            blueSlider.value = 0;
+            red = 255;
+            green = 0;
+            blue = 0;
+            updateColor();
+        });
+        
+        // 初始化
+        updateColor();
+    </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+---
+# Step 1: hostname and timezone
+
+# When the inventory uses an FQDN (node1.example.com), only the short name
+# is set as the hostname. Use {{ inventory_hostname }} if you need the
+# full FQDN instead.
+- name: Set hostname
+  hostname:
+    name: "{{ inventory_hostname | split('.') | first }}"
+
+- name: Set timezone
+  timezone:
+    name: "{{ timezone | default('Asia/Shanghai') }}"

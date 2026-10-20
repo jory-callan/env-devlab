@@ -1,0 +1,20 @@
+---
+# Step 2: configure the Docker daemon
+
+- name: Create the Docker configuration directory
+  file:
+    path: /etc/docker
+    state: directory
+    mode: '0755'
+
+- name: Write daemon.json
+  template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    mode: '0644'
+  notify: restart docker
+
+# Flush the restart handler immediately: avoids one extra
+# start-then-restart cycle and surfaces daemon.json problems at
+# configuration time
+- meta: flush_handlers

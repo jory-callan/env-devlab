@@ -1,0 +1,83 @@
+---
+# Step 1: install Docker CE (RedHat / Debian dual support)
+
+# ---- Remove old versions ----
+- name: Remove old Docker packages (RedHat)
+  package:
+    name:
+      - docker
+      - docker-client
+      - docker-client-latest
+      - docker-common
+      - docker-latest
+      - docker-latest-logrotate
+      - docker-logrotate
+      - docker-engine
+    state: absent
+  when: ansible_os_family == "RedHat"
+
+- name: Remove old Docker packages (Debian)
+  package:
+    name:
+      - docker
+      - docker-engine
+      - docker.io
+      - containerd
+      - runc
+    state: absent
+  when: ansible_os_family == "Debian"
+
+# ---- Add the official repository ----
+- name: Install dnf-utils (RedHat)
+  package:
+    name: dnf-utils
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Add the Docker CE repository (RedHat - Aliyun mirror)
+  get_url:
+    url: https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+    dest: /etc/yum.repos.d/docker-ce.repo
+    mode: '0644'
+  when: ansible_os_family == "RedHat"
+
+- name: Install apt dependencies (Debian)
+  package:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - gnupg
+      - lsb-release
+    state: present
+  when: ansible_os_family == "Debian"
+
+# The apt_key module is deprecated; use a keyring with signed-by instead
+- name: Create the apt keyrings directory (Debian)
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+  when: ansible_os_family == "Debian"
+
+- name: Add the Docker GPG key (Debian - Aliyun mirror)
+  get_url:
+    url: https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: '0644'
+  when: ansible_os_family == "Debian"
+
+- name: Add the Docker apt source (Debian - Aliyun mirror)
+  apt_repository:
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://mirrors.aliyun.com/docker-ce/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+# ---- Install Docker CE (generic) ----
+- name: Install Docker CE
+  package:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+    state: present

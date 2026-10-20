@@ -1,0 +1,107 @@
+---
+# Step 1.5: configure package mirror sources (Aliyun)
+#
+# Rocky 8/9/10: one template-deployed repo file (handles the powertools/CRB
+#               naming difference), plus EPEL install + mirror rewrite
+# Ubuntu 20.04+: find the source files once, then rewrite the official
+#               domains with one regexp per domain group - covers the deb
+#               format (sources.list), DEB822 (ubuntu.sources) and the
+#               ports domain (arm) alike
+#
+# This step runs BEFORE packages.yml (see tasks/main.yml import order) so
+# every package install already goes through the domestic mirror.
+
+# ==================== Rocky Linux ====================
+# NOTE: query('fileglob', ...) runs on the CONTROLLER, not the target host.
+# Remote files must be looked up with the find module.
+- name: Find old Rocky repo files (handles 8/9/10 naming differences)
+  find:
+    paths: /etc/yum.repos.d
+    patterns: "[Rr]ocky*.repo"
+  register: rocky_old_repos
+  when:
+    - ansible_os_family == "RedHat"
+    - ansible_distribution == "Rocky"
+
+- name: Remove old Rocky repo files
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ rocky_old_repos.files }}"
+  when:
+    - ansible_os_family == "RedHat"
+    - ansible_distribution == "Rocky"
+
+- name: Deploy the Rocky repo file (Aliyun mirror)
+  template:
+    src: rocky.repo.j2
+    dest: /etc/yum.repos.d/rocky.repo
+    mode: '0644'
+  when:
+    - ansible_os_family == "RedHat"
+    - ansible_distribution == "Rocky"
+
+# EPEL: install first, then rewrite the mirror. It lives here (not in
+# packages.yml) because the rewrite must happen immediately after the
+# install and before any package resolution.
+- name: Install EPEL (RedHat)
+  package:
+    name: epel-release
+    state: present
+  when: ansible_os_family == "RedHat"
+
+# metalink is dropped and the (commented) baseurl is repointed at Aliyun.
+# Idempotent: a second run finds no metalink and rewrites the same baseurl.
+- name: Point EPEL at the Aliyun mirror (RedHat)
+  shell: |
+    set -e
+    shopt -s nullglob
+    for f in /etc/yum.repos.d/epel*.repo; do
+      case "$(basename "$f")" in
+        epel-cisco-openh264*) continue ;;  # no domestic mirror available
+      esac
+      sed -i -e '/^metalink=/d' \
+             -e 's|^#*baseurl=.*|baseurl=https://mirrors.aliyun.com/epel/$releasever/Everything/$basearch/|' "$f"
+    done
+  args:
+    executable: /bin/bash
+  when: ansible_os_family == "RedHat"
+  changed_when: false
+
+# ==================== Ubuntu ====================
+# The regexps cover every known layout with one pattern each:
+#   sources.list (deb)      deb http://archive.ubuntu.com/ubuntu ...
+#   ubuntu.sources (DEB822) URIs: http://archive.ubuntu.com/ubuntu
+#   ports (arm)             http://ports.ubuntu.com/ubuntu-ports
+- name: Find APT source files (Ubuntu)
+  find:
+    paths:
+      - /etc/apt
+      - /etc/apt/sources.list.d
+    patterns:
+      - "sources.list"
+      - "ubuntu.sources"
+    file_type: file
+    recurse: false
+  register: apt_source_files
+  when: ansible_os_family == "Debian"
+
+- name: Point archive/security APT sources at the Aliyun mirror (Ubuntu)
+  replace:
+    path: "{{ item.path }}"
+    regexp: 'https?://(archive|security)\.ubuntu\.com/ubuntu'
+    replace: 'http://mirrors.aliyun.com/ubuntu'
+    backup: yes
+  loop: "{{ apt_source_files.files }}"
+  when: ansible_os_family == "Debian"
+  notify: apt update
+
+- name: Point ports APT sources at the Aliyun mirror (Ubuntu, arm)
+  replace:
+    path: "{{ item.path }}"
+    regexp: 'https?://ports\.ubuntu\.com/ubuntu-ports'
+    replace: 'http://mirrors.aliyun.com/ubuntu-ports'
+    backup: yes
+  loop: "{{ apt_source_files.files }}"
+  when: ansible_os_family == "Debian"
+  notify: apt update

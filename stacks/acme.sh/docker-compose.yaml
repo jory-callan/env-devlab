@@ -1,0 +1,18 @@
+services:
+  acmesh:
+    container_name: acmesh
+    # Pinned to the latest release (3.1.6, 2026-09-20)
+    image: neilpang/acme.sh:3.1.6
+    restart: always
+    environment:
+      - ACCOUNT_EMAIL=${ACCOUNT_EMAIL}
+      - Tencent_SecretId=${Tencent_SecretId}
+      - Tencent_SecretKey=${Tencent_SecretKey}
+    volumes:
+      - ./acme.sh:/acme.sh            # acme.sh account and certificate store
+      - ./tools/:/tools/              # helper scripts (check_ssl.sh, sync.sh)
+      - ${ROOT_DIR}/data:/data        # certificate output dir
+    # Host network mode is required so acme.sh can reach the Tencent DNS
+    # API and bind local validation ports directly.
+    network_mode: host
+    command: daemon

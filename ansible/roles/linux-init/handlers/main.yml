@@ -1,0 +1,17 @@
+---
+# linux-init handlers
+
+- name: restart journald
+  systemd:
+    name: systemd-journald
+    state: restarted
+    daemon_reload: yes
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+
+- name: apt update
+  command: apt-get update
+  args:
+    warn: false

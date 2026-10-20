@@ -1,0 +1,36 @@
+services:
+  minio:
+    # The community edition image (minio/minio) was withdrawn from Docker Hub
+    # and Quay in September 2026. This is MinIO's official successor (AIStor
+    # Free tier) with an identical interface: same env vars, ports, command
+    # and on-disk format. Pinned to a specific release tag.
+    image: quay.io/minio/aistor/minio:RELEASE.2026-09-19T17-05-25Z
+    container_name: minio
+    restart: always
+    # Alternative to bridge networking: network_mode: host
+    # user: root
+    # privileged: true
+    networks:
+      - net-shared
+    ports:
+      # 9000 = web console, 9001 = S3 API (see the command below)
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      TZ: 'Asia/Shanghai'
+      # Credentials come from .env; Admin123 is the fallback password
+      MINIO_ROOT_USER: '${MINIO_ROOT_USER:-admin}'
+      MINIO_ROOT_PASSWORD: '${MINIO_ROOT_PASSWORD:-Admin123}'
+      # Silence the built-in update/telemetry check
+      MINIO_UPDATE_MINFREQDAYS: '0'
+    volumes:
+      # Read-only host clock, keeps the container time in sync
+      - /etc/localtime:/etc/localtime:ro
+      - ${ROOT_DIR}/data:/data
+    command:
+      # console-address = admin web UI, address = S3 service endpoint
+      server /data --console-address ":9000" --address ":9001"
+
+networks:
+  net-shared:
+    external: true
