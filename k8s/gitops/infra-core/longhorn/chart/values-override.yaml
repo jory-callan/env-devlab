@@ -1,0 +1,18 @@
+# Longhorn 值覆盖（ArgoCD 渲染时叠加在 chart 默认值之上）
+# 与原 bootstrap/longhorn/install.sh 的 --set 参数一一对应
+defaultSettings:
+  # 单节点：1 副本（测试配置，节点故障会丢数据）
+  replicaCount: 1
+
+persistence:
+  # 不抢占默认 StorageClass（默认由 nfs-client 承担）
+  defaultStorageClass: false
+
+csi:
+  # k3s kubelet socket 路径，须与 k3s 实际 data-dir 一致
+  kubeletRootDir: /var/lib/rancher/k3s/agent/kubelet
+
+service:
+  ui:
+    type: NodePort
+    nodePort: 30777

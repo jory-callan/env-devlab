@@ -1,0 +1,29 @@
+# apps 层 — 业务应用示例
+# 依赖 infra-core（ingress-nginx / cert-manager）与 platform 层就绪
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hello-world
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: apps
+  sources:
+    - repoURL: ssh://git@github.com/jory-callan/env-devlab.git
+      targetRevision: main
+      path: k8s/gitops/apps/hello-world
+      directory:
+        recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: apps
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+      - ApplyOutOfSyncOnly=true

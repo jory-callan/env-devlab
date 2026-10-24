@@ -1,0 +1,39 @@
+# infra-core 层 — MetalLB
+# 提供裸机 LoadBalancer（L2 模式），是 ingress-nginx 暴露 IP 的前提
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: metallb
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+spec:
+  project: infra-core
+  sources:
+    # Helm chart（vendored 于仓库，避免集群侧依赖 helm 仓库可达性）
+    - repoURL: ssh://git@github.com/jory-callan/env-devlab.git
+      targetRevision: main
+      path: k8s/gitops/infra-core/metallb/chart
+      helm:
+        releaseName: metallb
+        valueFiles:
+          - values-override.yaml
+    # 额外 CR（IPAddressPool / L2Advertisement）
+    - repoURL: ssh://git@github.com/jory-callan/env-devlab.git
+      targetRevision: main
+      path: k8s/gitops/infra-core/metallb/manifests
+      directory:
+        recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: metallb-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+      - ApplyOutOfSyncOnly=true

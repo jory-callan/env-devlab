@@ -1,0 +1,37 @@
+# infra-core 层 — cert-manager
+# TLS 证书自动签发，应用层依赖它（wave -1，先于 apps）
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: infra-core
+  sources:
+    - repoURL: ssh://git@github.com/jory-callan/env-devlab.git
+      targetRevision: main
+      path: k8s/gitops/infra-core/cert-manager/chart
+      helm:
+        releaseName: cert-manager
+        valueFiles:
+          - values-override.yaml
+    # ClusterIssuer 等额外 CR
+    - repoURL: ssh://git@github.com/jory-callan/env-devlab.git
+      targetRevision: main
+      path: k8s/gitops/infra-core/cert-manager/manifests
+      directory:
+        recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+      - ApplyOutOfSyncOnly=true

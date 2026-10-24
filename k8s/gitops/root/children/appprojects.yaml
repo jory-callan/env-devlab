@@ -1,0 +1,69 @@
+# AppProject — 三层权限隔离
+# 由 root App-of-Apps 同步。同仓库多目录，用 namespace + clusterResource 白名单做隔离。
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: infra-core
+  namespace: argocd
+  description: 集群核心基础设施层（LB / Ingress / 证书 / 存储）
+spec:
+  sourceRepos:
+    - "*" # 同仓库单目录，无法按路径限制；隔离靠 namespace + clusterResource 白名单
+  destinations:
+    - namespace: metallb-system
+      server: "*"
+    - namespace: ingress-nginx
+      server: "*"
+    - namespace: cert-manager
+      server: "*"
+    - namespace: nfs-storageclass
+      server: "*"
+    - namespace: longhorn-system
+      server: "*"
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+  description: 平台层（可观测性技术栈）
+spec:
+  sourceRepos:
+    - "*"
+  destinations:
+    - namespace: monitoring
+      server: "*"
+  clusterResourceWhitelist:
+    - group: monitoring.coreos.com
+      kind: "*"
+    - group: operator.victoriametrics.com
+      kind: "*"
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: apps
+  namespace: argocd
+  description: 业务应用层
+spec:
+  sourceRepos:
+    - "*"
+  destinations:
+    - namespace: apps
+      server: "*"
+  clusterResourceWhitelist: [] # 业务应用不得创建集群级资源
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

@@ -1,0 +1,22 @@
+# ingress-nginx Helm values — 增强日志格式
+# 在 install.sh 中通过 -f 加载
+controller:
+  config:
+    # 增强日志格式，包含排障核心字段（对应 fluent-bit 的 ingress-nginx parser）
+    log-format-upstream: >
+      $remote_addr - $remote_user [$time_local] "$request"
+      $status $body_bytes_sent "$http_referer"
+      "$http_user_agent" "$http_x_forwarded_for"
+      rt=$request_time uct="$upstream_connect_time" uht="$upstream_header_time" urt="$upstream_response_time"
+      us="$upstream_status" uaddr="$upstream_addr"
+      host="$host" uri="$uri" args="$args"
+      scheme="$scheme" server_protocol="$server_protocol"
+      http_x_forwarded_proto="$http_x_forwarded_proto"
+      ssl_protocol="$ssl_protocol" ssl_cipher="$ssl_cipher"
+      pipe="$pipe"
+    # 保留真实客户端 IP
+    compute-full-forwarded-for: "true"
+    use-forwarded-headers: "true"
+    # 性能
+    worker-processes: "auto"
+    proxy-body-size: "100m"

@@ -1,0 +1,31 @@
+# platform 层 — VictoriaMetrics k8s stack
+# 集群内可观测性技术栈；依赖 infra-core 的 nfs-client StorageClass
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: victoria-metrics
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: platform
+  sources:
+    - repoURL: ssh://git@github.com/jory-callan/env-devlab.git
+      targetRevision: main
+      path: k8s/gitops/platform/victoria-metrics-k8s-stack/chart
+      helm:
+        releaseName: vm
+        valueFiles:
+          - values-override.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+      - ApplyOutOfSyncOnly=true

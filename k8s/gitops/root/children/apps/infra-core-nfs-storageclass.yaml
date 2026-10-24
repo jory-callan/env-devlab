@@ -1,0 +1,38 @@
+# infra-core 层 — NFS StorageClass
+# 动态 NFS 卷供给（ReadWriteMany），平台层 Grafana/VictoriaMetrics 的 PVC 依赖它
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nfs-storageclass
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: infra-core
+  sources:
+    # NFS 服务器（Deployment/Service/PVC，需宿主机 nfsd 内核模块）
+    - repoURL: ssh://git@github.com/jory-callan/env-devlab.git
+      targetRevision: main
+      path: k8s/gitops/infra-core/nfs-storageclass/manifests
+      directory:
+        recurse: true
+    # subdir provisioner chart
+    - repoURL: ssh://git@github.com/jory-callan/env-devlab.git
+      targetRevision: main
+      path: k8s/gitops/infra-core/nfs-storageclass/chart
+      helm:
+        releaseName: nfs-provisioner
+        valueFiles:
+          - values-override.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nfs-storageclass
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+      - ApplyOutOfSyncOnly=true

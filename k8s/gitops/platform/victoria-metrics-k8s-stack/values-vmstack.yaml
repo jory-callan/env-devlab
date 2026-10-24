@@ -1,0 +1,286 @@
+# ── victoria-metrics-k8s-stack values ──────────────────────
+# 统一监控栈：指标 + 日志
+# 使用 chart 内置的 VLSingle/VLAgent（替代独立安装）
+
+# fullnameOverride 统一命名前缀，所有组件名变为 <component>-monitoring
+# 如: vmsingle-monitoring / vmagent-monitoring / vmalert-monitoring
+fullnameOverride: "monitoring"
+
+# ── VictoriaMetrics Operator ────────────────────────────
+victoria-metrics-operator:
+  enabled: true
+  crds:
+    plain: true
+  operator:
+    disable_prometheus_converter: false
+
+# ── VMAgent（指标采集器）────────────────────────────────
+vmagent:
+  enabled: true
+  spec:
+    selectAllByDefault: true
+    scrapeInterval: 20s
+    port: "8429"
+    extraArgs:
+      promscrape.streamParse: "true"
+
+# ── VMSingle（指标存储 + 查询）───────────────────────────
+vmsingle:
+  enabled: true
+  spec:
+    resources:
+      requests:
+        cpu: 200m
+        memory: 1Gi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+    storage:
+      storageClassName: nfs-client
+  ingress:
+    enabled: true
+    annotations:
+      cert-manager.io/cluster-issuer: internal-ca
+    ingressClassName: nginx
+    hosts:
+      - vm-metrics.czw-sre.internal
+    tls:
+      - secretName: vm-metrics-tls
+        hosts:
+          - vm-metrics.czw-sre.internal
+
+vmcluster:
+  enabled: false
+
+# ── VLSingle（日志存储）────────────────────────────────
+vlsingle:
+  enabled: true
+  spec:
+    retentionPeriod: "7d"
+    replicaCount: 1
+    storage:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 10Gi
+      storageClassName: nfs-client
+  ingress:
+    enabled: true
+    annotations:
+      cert-manager.io/cluster-issuer: internal-ca
+    ingressClassName: nginx
+    hosts:
+      - vm-logs.czw-sre.internal
+    tls:
+      - secretName: vm-logs-tls
+        hosts:
+          - vm-logs.czw-sre.internal
+
+# ── VLAgent（日志采集 DaemonSet）────────────────────────
+vlagent:
+  enabled: false # 采用 fluent-bit
+  spec:
+    k8sCollector:
+      enabled: true
+
+# ── VMAlert（告警规则引擎）─────────────────────────────
+vmalert:
+  enabled: true
+  spec:
+    selectAllByDefault: true
+    evaluationInterval: 30s
+
+# ── AlertManager（告警管理 + 飞书通知）────────────────
+alertmanager:
+  enabled: true
+  spec:
+    replicaCount: 1
+    selectAllByDefault: true
+  config:
+    route:
+      receiver: feishu
+      group_by: ["alertname", "severity"]
+      group_wait: 10s
+      group_interval: 30s
+      repeat_interval: 6h
+      routes:
+        - receiver: 'null'
+          matchers:
+            - alertname = "Watchdog"
+        - receiver: 'null'
+          matchers:
+            - alertname = "InfoInhibitor"
+    receivers:
+      - name: 'null'
+      - name: feishu
+        webhook_configs:
+          - url: "http://webhook2im.webhook2im:3000/alertmanager"
+            send_resolved: true
+
+# ── Node Exporter + kube-state-metrics ─────────────────
+# 禁用 node-exporter，与 kube-prometheus-stack 共存避免 host 端口 9100 冲突
+# VM stack 通过 VMAgent 原生抓取指标，不需要独立 node-exporter
+# ⚠️ chart 的 condition 是 prometheus-node-exporter.enabled（不是 node-exporter.enabled）
+prometheus-node-exporter:
+  enabled: false
+
+kube-state-metrics:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 96Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# ── 控制平面组件 — k3s 无独立端点
+kubeControllerManager:
+  enabled: true
+  service:
+    enabled: false
+kubeScheduler:
+  enabled: true
+  service:
+    enabled: false
+kubeEtcd:
+  enabled: false
+
+# ── Catalog（默认 Dashboard）──────────────────────────
+# 保持默认，chart 自动加载 kube-prometheus 系列 dashboard
+
+# ── Grafana ──────────────────────────────────────────────
+grafana:
+  enabled: true
+  adminPassword: admin123
+  defaultDashboardsTimezone: Asia/Shanghai
+
+  # ── 安全上下文 — NFS PVC 跳过 chown ────────────────
+  initChownData:
+    enabled: true # NFS下无效，不支持 chown（root_squash 会拦截）
+
+  # ── Ingress ──────────────────────────────────────────
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: internal-ca
+    hosts:
+      - vm-grafana.czw-sre.internal
+    tls:
+      - hosts:
+          - vm-grafana.czw-sre.internal
+        secretName: vm-grafana-tls
+
+  # ── 持久化 ──────────────────────────────────────────
+  persistence:
+    enabled: true
+    storageClassName: nfs-client
+    size: 5Gi
+
+  # ── Sidecar — 启用 datasource sidecar（chart 默认 datasource 依赖它）─
+  sidecar:
+    datasources:
+      enabled: true       # 启用 chart 内置的 3 个 datasource 自动部署
+      label: grafana_datasource
+      labelValue: "1"
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+
+  # ── Grafana 配置 ──────────────────────────────────────
+  grafana.ini:
+    plugins:
+      # 两个插件均未签名：victoriametrics-metrics-datasource + victoriametrics-logs-datasource
+      allow_loading_unsigned_plugins: victoriametrics-metrics-datasource,victoriametrics-logs-datasource
+
+  # ── 插件安装（initContainer 自动下载）────────────────
+  # 幂等：如果插件已存在 PVC 上则跳过下载
+  # chmod 755 解决 NFS 环境（root_squash）下跨 PVC 生命周期的权限问题
+  extraInitContainers:
+    - name: download-vm-metrics-plugin
+      image: busybox:1.38.0
+      command:
+        - sh
+        - -c
+        - |
+          set -e
+          PLUGIN_DIR="/var/lib/grafana/plugins/victoriametrics-metrics-datasource"
+          if [ -d "$PLUGIN_DIR" ] && [ -f "$PLUGIN_DIR/plugin.json" ]; then
+            echo "✅ victoriametrics-metrics-datasource already installed, skipping"
+            chmod -R 755 "$PLUGIN_DIR"
+            exit 0
+          fi
+          mkdir -p /var/lib/grafana/plugins
+          cd /var/lib/grafana/plugins
+          echo "⬇️ Downloading victoriametrics-metrics-datasource v0.25.2..."
+          wget -q -O plugin.tar.gz \
+            "https://gh-proxy.com/https://github.com/VictoriaMetrics/victoriametrics-datasource/releases/download/v0.25.2/victoriametrics-metrics-datasource-v0.25.2.tar.gz"
+          tar -xzf plugin.tar.gz
+          rm plugin.tar.gz
+          chmod -R 755 "$PLUGIN_DIR"
+          echo "✅ victoriametrics-metrics-datasource installed"
+      volumeMounts:
+        - name: storage
+          mountPath: /var/lib/grafana
+
+    - name: download-vm-logs-plugin
+      image: busybox:1.38.0
+      command:
+        - sh
+        - -c
+        - |
+          set -e
+          PLUGIN_DIR="/var/lib/grafana/plugins/victoriametrics-logs-datasource"
+          if [ -d "$PLUGIN_DIR" ] && [ -f "$PLUGIN_DIR/plugin.json" ]; then
+            echo "✅ victoriametrics-logs-datasource already installed, skipping"
+            chmod -R 755 "$PLUGIN_DIR"
+            exit 0
+          fi
+          mkdir -p /var/lib/grafana/plugins
+          cd /var/lib/grafana/plugins
+          echo "⬇️ Downloading victoriametrics-logs-datasource v0.29.0..."
+          wget -q -O plugin.tar.gz \
+            "https://gh-proxy.com/https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/v0.29.0/victoriametrics-logs-datasource-v0.29.0.tar.gz"
+          tar -xzf plugin.tar.gz
+          rm plugin.tar.gz
+          chmod -R 755 "$PLUGIN_DIR"
+          echo "✅ victoriametrics-logs-datasource installed"
+      volumeMounts:
+        - name: storage
+          mountPath: /var/lib/grafana
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+defaultDashboards:
+  enabled: true
+
+# ── 默认 Datasource（chart 内置，3 个 datasource）───────
+# chart 自动填充 VMSingle/VLSingle 的 URL
+defaultDatasources:
+  victoriametrics:
+    datasources:
+      - name: VictoriaMetrics
+        type: prometheus
+        access: proxy
+        uid: VictoriaMetrics
+        isDefault: true
+      - name: VictoriaMetrics (Native)
+        type: victoriametrics-metrics-datasource
+        access: proxy
+        uid: VictoriaMetricsDS
+        isDefault: false
+  victorialogs:
+    datasources:
+      - name: VictoriaLogs
+        type: victoriametrics-logs-datasource
+        access: proxy
+        uid: VictoriaLogs
+        isDefault: false

@@ -1,0 +1,88 @@
+# 内部 NFS 服务器（基于内核 nfsd）
+#
+# 关键点:
+#   1. 宿主机必须已加载 nfsd 内核模块，否则容器报 "Protocol not supported" 反复退出
+#      → install-k3s.sh 中的 setup_nfs_kernel 负责安装并加载
+#   2. clusterIP 固定为 10.43.200.10
+#      → provisioner chart 需要写死 nfs.server，动态 ClusterIP 无法在 GitOps 中引用
+#      → 10.43.0.0/16 需避开 k3s 其它 Service 占用
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nfs-storageclass
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-server-data
+  namespace: nfs-storageclass
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: local-path
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfs-server
+  namespace: nfs-storageclass
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nfs-server
+  template:
+    metadata:
+      labels:
+        app: nfs-server
+    spec:
+      containers:
+        - name: nfs-server
+          image: erichough/nfs-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 2049
+              name: nfs
+            - containerPort: 20048
+              name: mountd
+            - containerPort: 111
+              name: rpcbind
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: nfs-storage
+              mountPath: /exports
+          env:
+            - name: NFS_EXPORT_0
+              value: "/exports *(rw,sync,no_subtree_check,insecure,no_root_squash,fsid=0)"
+      volumes:
+        - name: nfs-storage
+          persistentVolumeClaim:
+            claimName: nfs-server-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nfs-server
+  namespace: nfs-storageclass
+  labels:
+    app: nfs-server
+spec:
+  type: ClusterIP
+  clusterIP: 10.43.200.10
+  ports:
+    - name: nfs
+      port: 2049
+      protocol: TCP
+    - name: mountd
+      port: 20048
+      protocol: TCP
+    - name: rpcbind
+      port: 111
+      protocol: TCP
+  selector:
+    app: nfs-server

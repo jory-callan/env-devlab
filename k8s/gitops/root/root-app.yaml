@@ -1,0 +1,32 @@
+# App-of-Apps 根入口
+# 由 bootstrap/argocd/install.sh 在 ArgoCD 就绪后 apply。
+# source.path 指向 children/，ArgoCD 递归渲染其中的 AppProject 与 Application。
+#
+# 注意: repoURL 使用占位符 __REPO_URL__，由 install.sh 按实际仓库地址渲染后 apply；
+#       children/ 内的 Application 同样使用占位符，由 ArgoCD 在渲染时替换。
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: __REPO_URL__
+    targetRevision: __REPO_REVISION__
+    path: k8s/gitops/root/children
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true

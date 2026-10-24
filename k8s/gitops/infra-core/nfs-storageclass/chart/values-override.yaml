@@ -1,0 +1,25 @@
+# nfs-subdir-external-provisioner 值覆盖
+# 与原 bootstrap/nfs-storageclass/install.sh 的 --set 参数一一对应
+nfs:
+  # 与 manifests/nfs-server.yaml 中 Service 的固定 clusterIP 一致
+  server: 10.43.200.10
+  path: /
+
+storageClass:
+  name: nfs-client
+  defaultClass: true
+  allowVolumeExpansion: true
+  reclaimPolicy: Delete
+  accessModes:
+    - ReadWriteMany
+
+mountOptions:
+  - vers=3
+  - hard
+  - intr
+  - sync
+  - timeo=600
+  - retrans=5
+
+leaderElection:
+  enabled: true

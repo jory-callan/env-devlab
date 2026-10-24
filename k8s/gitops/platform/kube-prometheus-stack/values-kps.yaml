@@ -1,0 +1,122 @@
+# ── kube-prometheus-stack values ──────────────────────────
+# Prometheus Operator + Prometheus + Grafana + AlertManager
+
+# k3s 内置 etcd — metrics 端口 (2381) 绑定 localhost，集群内无法采集
+kubeEtcd:
+  enabled: false
+
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+
+# ── AlertManager ──────────────────────────────────────────
+alertmanager:
+  enabled: true
+  config:
+    global:
+      resolve_timeout: 5m
+    inhibit_rules:
+      - source_matchers:
+          - 'severity = critical'
+        target_matchers:
+          - 'severity =~ warning|info'
+        equal:
+          - 'namespace'
+          - 'alertname'
+      - source_matchers:
+          - 'severity = warning'
+        target_matchers:
+          - 'severity = info'
+        equal:
+          - 'namespace'
+          - 'alertname'
+    route:
+      group_by: ['namespace']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      receiver: 'feishu'
+      routes:
+        - receiver: 'null'
+          matchers:
+            - alertname = "Watchdog"
+        - receiver: 'null'
+          matchers:
+            - alertname = "InfoInhibitor"
+    receivers:
+      - name: 'null'
+      - name: 'feishu'
+        webhook_configs:
+          - url: 'http://webhook2im.webhook2im:3000/alertmanager'
+            send_resolved: true
+    templates:
+      - '/etc/alertmanager/config/*.tmpl'
+
+# ── Prometheus ────────────────────────────────────────────
+prometheus:
+  enabled: true
+  prometheusSpec:
+    maximumStartupDurationSeconds: 600
+    retention: 7d
+    serviceMonitorNamespaceSelector: {}
+    serviceMonitorSelector:
+      matchLabels: {}
+    podMonitorNamespaceSelector: {}
+    podMonitorSelector:
+      matchLabels: {}
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: nfs-client
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 2
+        memory: 4Gi
+
+# ── Grafana ───────────────────────────────────────────────
+grafana:
+  enabled: true
+  adminPassword: admin
+  defaultDashboardsEnabled: true
+  defaultDashboardsTimezone: Asia/Shanghai
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: internal-ca
+    hosts:
+      - grafana.czw-sre.internal
+    tls:
+      - hosts:
+          - grafana.czw-sre.internal
+        secretName: grafana-tls
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  persistence:
+    enabled: true
+    storageClassName: nfs-client
+    size: 5Gi
+  grafana.ini:
+    server:
+      root_url: https://grafana.czw-sre.internal
+    auth.anonymous:
+      enabled: false
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      url: http://loki-gateway:80
+      access: proxy
+      isDefault: false

@@ -1,0 +1,17 @@
+# ── Promtail values ───────────────────────────────────────
+# DaemonSet 采集所有节点日志
+
+config:
+  clients:
+    - url: http://loki-gateway:80/loki/api/v1/push
+
+tolerations:
+  - operator: Exists
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi

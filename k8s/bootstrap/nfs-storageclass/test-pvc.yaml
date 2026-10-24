@@ -1,0 +1,14 @@
+# test-pvc.yaml — NFS StorageClass 验证用 PVC
+# 用法: kubectl apply -f test-pvc.yaml
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: test-nfs-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: nfs-client

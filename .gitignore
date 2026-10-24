@@ -22,3 +22,14 @@ stacks/**/grafana-data
 
 # Note: stacks/*/.env files are intentionally TRACKED in git (dev lab
 # credentials). Do not add a .env ignore rule here.
+
+# .tar.gz
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.7z
+
+# 例外: k8s 下的 chart 需随仓库提交
+# (ArgoCD 从 Git 读取 chart 目录渲染，bootstrap 兜底下载依赖网络可达性)
+!k8s/**/*.tgz

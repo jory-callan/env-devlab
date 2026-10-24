@@ -1,0 +1,31 @@
+# infra-core 层 — ingress-nginx
+# 依赖 MetalLB 提供 LoadBalancer IP（wave -3 先于本组件）
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ingress-nginx
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  project: infra-core
+  sources:
+    - repoURL: ssh://git@github.com/jory-callan/env-devlab.git
+      targetRevision: main
+      path: k8s/gitops/infra-core/ingress-nginx/chart
+      helm:
+        releaseName: ingress-nginx
+        valueFiles:
+          - values-override.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ingress-nginx
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+      - ApplyOutOfSyncOnly=true

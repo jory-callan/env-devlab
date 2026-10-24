@@ -1,0 +1,73 @@
+# ArgoCD Helm values — 单节点环境调优
+# 依据: 节点 2C/5.7Gi, 所有副本显式设为 1（避免 Pending，参考 cilium operator 踩坑）
+global:
+  domain: argocd.local
+
+controller:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 768Mi
+
+repoServer:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+
+applicationSet:
+  enabled: true
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 384Mi
+
+# 内置 redis 单实例
+redis:
+  enabled: true
+  image:
+    repository: quay.io/argoproj/argocd
+    tag: v3.5.5
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+dex:
+  enabled: false
+
+notifications:
+  enabled: false
+
+# ── 对外访问 ─────────────────────────────────────────────
+# 引导阶段 ingress-nginx 尚未由 ArgoCD 接管，不能依赖它；
+# 先用 NodePort 暴露，后续可改为 Ingress。
+server:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 384Mi
+  service:
+    type: NodePort
+    nodePortHttp: 30800
+    nodePortHttps: 30443
+  insecure: true

@@ -1,0 +1,26 @@
+# ingress.yaml — Longhorn UI Ingress
+# 部署: kubectl apply -f ingress.yaml
+# 域名: https://longhorn.czw-sre.internal
+# 前置条件: ingress-nginx + cert-manager 已就绪
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: longhorn
+  namespace: longhorn-system
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - longhorn.czw-sre.internal
+      secretName: longhorn-tls
+  rules:
+    - host: longhorn.czw-sre.internal
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: longhorn-frontend
+                port:
+                  number: 80

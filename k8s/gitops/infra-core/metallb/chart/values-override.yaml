@@ -1,0 +1,10 @@
+# MetalLB 值覆盖（ArgoCD 渲染时叠加在 chart 默认值之上）
+# 单节点注意: frr-k8s 若多副本会因反亲和/资源竞争 Pending
+crds:
+  enabled: true
+
+frrk8s:
+  enabled: true
+
+controller:
+  replicas: 1
