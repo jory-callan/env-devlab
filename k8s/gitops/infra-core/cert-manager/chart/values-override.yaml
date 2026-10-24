@@ -12,3 +12,20 @@ resources:
   limits:
     cpu: 200m
     memory: 128Mi
+
+# leader election 的 Role/RoleBinding 落在 kube-system
+global:
+  leaderElection:
+    namespace: kube-system
+
+# 不创建 ServiceMonitor/PodMonitor:
+# monitoring.coreos.com/v1 的 CRD 由 victoria-metrics-operator 提供，
+# 而 platform 层（wave 1）晚于 cert-manager（wave -1）安装，
+# → cert-manager 同步时 CRD 尚不存在，ArgoCD 报
+#   'failed to discover server resources for group version monitoring.coreos.com/v1'
+prometheus:
+  enabled: false
+  servicemonitor:
+    enabled: false
+  podmonitor:
+    enabled: false

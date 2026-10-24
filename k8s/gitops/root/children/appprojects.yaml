@@ -20,6 +20,9 @@ spec:
       server: "*"
     - namespace: longhorn-system
       server: "*"
+    # cert-manager 的 leader election Role/RoleBinding 落在 kube-system
+    - namespace: kube-system
+      server: "*"
   clusterResourceWhitelist:
     - group: "*"
       kind: "*"
