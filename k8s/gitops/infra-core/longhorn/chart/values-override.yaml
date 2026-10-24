@@ -16,3 +16,9 @@ service:
   ui:
     type: NodePort
     nodePort: 30777
+
+# 禁用 pre-upgrade 检查 Job。
+# 该 Job 带 helm.sh/hook: pre-upgrade 注解，ArgoCD 的 hook 语义与 Helm 不同，
+# 首次安装（无上一版本）时该 Job 会永远 Running，卡住整个 Application 的同步。
+preUpgradeChecker:
+  jobEnabled: false
