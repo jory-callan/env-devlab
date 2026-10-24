@@ -1,10 +1,9 @@
 # apps 层示例 — hello-world
 # 演示业务应用如何通过 GitOps 声明式交付
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: apps
+#
+# 注意: 不声明 Namespace。
+#   AppProject "apps" 的 clusterResourceWhitelist 为空 —— 业务应用层不允许创建集群级资源
+#   （Namespace 属集群级）。namespace 由 bootstrap 阶段预建，apps 层只管其中的工作负载。
 ---
 apiVersion: apps/v1
 kind: Deployment

@@ -38,13 +38,35 @@ spec:
   destinations:
     - namespace: monitoring
       server: "*"
+    # victoria-metrics-operator 的 core-dns 组件部署到 kube-system
+    - namespace: kube-system
+      server: "*"
   clusterResourceWhitelist:
-    - group: monitoring.coreos.com
-      kind: "*"
-    - group: operator.victoriametrics.com
-      kind: "*"
+    # Operator 需要创建自身的 CRD
     - group: apiextensions.k8s.io
       kind: CustomResourceDefinition
+    # Operator 需要创建 RBAC
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+    - group: rbac.authorization.k8s.io
+      kind: Role
+    - group: rbac.authorization.k8s.io
+      kind: RoleBinding
+    # Operator 需要创建 webhook
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+    # Operator 需要创建 ServiceAccount
+    - group: ""
+      kind: ServiceAccount
+    # Operator 的自定义资源
+    - group: operator.victoriametrics.com
+      kind: "*"
+    - group: monitoring.coreos.com
+      kind: "*"
   namespaceResourceWhitelist:
     - group: "*"
       kind: "*"

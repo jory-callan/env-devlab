@@ -103,6 +103,19 @@ else
     echo "         --from-file=sshPrivateKey=<key> --from-literal=type=git --from-literal=url=$REPO_URL"
 fi
 
+# ── 预建业务 namespace ─────────────────────────────────────
+# AppProject "apps" 的 clusterResourceWhitelist 为空（业务应用层不得创建集群级资源），
+# 因此 Namespace 不能由 apps 层自己声明，须在引导阶段预建。
+echo ">> 预建业务 namespace: apps ..."
+for ns in apps; do
+    if kubectl get namespace "$ns" >/dev/null 2>&1; then
+        echo "     [SKIP] namespace $ns 已存在"
+    else
+        kubectl create namespace "$ns" >/dev/null
+        echo "     [OK] namespace $ns 已创建"
+    fi
+done
+
 # ── 下发根应用 ───────────────────────────────────────────
 # root App-of-Apps 的 repoURL 需要与环境实际使用的仓库一致，
 # 这里按传入值渲染后再 apply（模板里的占位符替换）
