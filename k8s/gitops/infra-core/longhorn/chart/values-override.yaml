@@ -20,5 +20,12 @@ service:
 # 禁用 pre-upgrade 检查 Job。
 # 该 Job 带 helm.sh/hook: pre-upgrade 注解，ArgoCD 的 hook 语义与 Helm 不同，
 # 首次安装（无上一版本）时该 Job 会永远 Running，卡住整个 Application 的同步。
+# chart 注释原文即建议：Disable this setting when installing Longhorn using Argo CD。
 preUpgradeChecker:
   jobEnabled: false
+
+# post-upgrade / pre-delete 两个 hook Job 在 chart 中无条件渲染（无 values 开关），
+# 同样会被 ArgoCD 当作 hook 等待而卡住同步。
+# 处理方式: 在 manifests/ 目录用 ArgoCD 的 hook 注解覆盖为 Skip。
+# 见 manifests/longhorn-hooks-skip.yaml
+
