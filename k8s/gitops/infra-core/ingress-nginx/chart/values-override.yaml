@@ -3,6 +3,14 @@
 controller:
   # 单节点：DaemonSet 而非 Deployment
   kind: DaemonSet
+  # 单节点仅 1 核，requests 必须压低，否则与监控层叠加后超过 allocatable
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
   service:
     type: LoadBalancer
     externalTrafficPolicy: Local

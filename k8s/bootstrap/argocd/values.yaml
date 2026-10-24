@@ -1,73 +1,104 @@
 # ArgoCD Helm values — 单节点环境调优
-# 依据: 节点 2C/5.7Gi, 所有副本显式设为 1（避免 Pending，参考 cilium operator 踩坑）
+#
+# 硬约束: 节点 allocatable 仅 1 CPU / 3.9Gi。
+# 各组件 requests 之和必须显著小于 1 核，否则 Pod 永远 Pending
+# （实测: requests 合计 1.3 核 → argocd server/repo-server/controller 全部 Pending）
 global:
   domain: argocd.local
+  image:
+    repository: quay.io/argoproj/argocd
+    tag: v3.5.5
+    imagePullPolicy: IfNotPresent
+  # 关闭 NetworkPolicy。
+  # 原因: chart 生成的 NP 只放行 metrics 端口来自「namespace 内的 Pod」，
+  #       而 kubelet 的探针流量来源是宿主机(host identity)，不在 namespaceSelector 匹配范围内，
+  #       → repo-server / controller 探针被 Cilium 拦截，表现为 readiness/liveness 持续超时。
+  #       实测关闭后探针立即恢复正常。
+  # 单节点开发环境无多租户隔离需求，暂不启用 NP。
+  networkPolicy:
+    create: false
+    defaultDenyIngress: false
 
 controller:
   replicas: 1
   resources:
     requests:
-      cpu: 100m
-      memory: 256Mi
+      cpu: 25m
+      memory: 128Mi
     limits:
-      cpu: 500m
-      memory: 768Mi
+      cpu: 300m
+      memory: 512Mi
 
 repoServer:
   replicas: 1
   resources:
     requests:
-      cpu: 50m
-      memory: 128Mi
+      cpu: 25m
+      memory: 96Mi
     limits:
       cpu: 300m
-      memory: 512Mi
+      memory: 384Mi
+  # 单节点 1 核：chart 默认 timeoutSeconds=1 / failureThreshold=3，
+  # 实测 repo-server 必然被 liveness 杀掉（/healthz?full=true 会做 git 操作，很慢）
+  livenessProbe:
+    enabled: true
+    timeoutSeconds: 15
+    periodSeconds: 30
+    failureThreshold: 6
+    initialDelaySeconds: 30
+  readinessProbe:
+    enabled: true
+    timeoutSeconds: 15
+    periodSeconds: 10
+    failureThreshold: 6
+    initialDelaySeconds: 10
+
+server:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 25m
+      memory: 96Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  service:
+    type: NodePort
+    # 避开 ingress-nginx 占用的 30080/30443
+    nodePortHttp: 30800
+    nodePortHttps: 30801
+  insecure: true
 
 applicationSet:
   enabled: true
   replicas: 1
   resources:
     requests:
-      cpu: 50m
-      memory: 128Mi
+      cpu: 25m
+      memory: 96Mi
     limits:
-      cpu: 300m
-      memory: 384Mi
+      cpu: 200m
+      memory: 256Mi
 
 # 内置 redis 单实例
 redis:
   enabled: true
   image:
-    repository: quay.io/argoproj/argocd
-    tag: v3.5.5
+    # 上游默认指向 ecr-public.aws.com/docker/library/redis
+    # 该域名在本网络可达(401)，且不属于 registries.yaml 的 mirror 覆盖范围 → 直连
+    repository: ecr-public.aws.com/docker/library/redis
+    tag: 8.6.4-alpine
+    imagePullPolicy: IfNotPresent
   resources:
     requests:
-      cpu: 25m
-      memory: 64Mi
+      cpu: 10m
+      memory: 32Mi
     limits:
-      cpu: 200m
-      memory: 256Mi
+      cpu: 100m
+      memory: 128Mi
 
 dex:
   enabled: false
 
 notifications:
   enabled: false
-
-# ── 对外访问 ─────────────────────────────────────────────
-# 引导阶段 ingress-nginx 尚未由 ArgoCD 接管，不能依赖它；
-# 先用 NodePort 暴露，后续可改为 Ingress。
-server:
-  replicas: 1
-  resources:
-    requests:
-      cpu: 50m
-      memory: 128Mi
-    limits:
-      cpu: 300m
-      memory: 384Mi
-  service:
-    type: NodePort
-    nodePortHttp: 30800
-    nodePortHttps: 30443
-  insecure: true

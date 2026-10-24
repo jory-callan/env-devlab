@@ -6,7 +6,6 @@ kind: AppProject
 metadata:
   name: infra-core
   namespace: argocd
-  description: 集群核心基础设施层（LB / Ingress / 证书 / 存储）
 spec:
   sourceRepos:
     - "*" # 同仓库单目录，无法按路径限制；隔离靠 namespace + clusterResource 白名单
@@ -33,7 +32,6 @@ kind: AppProject
 metadata:
   name: platform
   namespace: argocd
-  description: 平台层（可观测性技术栈）
 spec:
   sourceRepos:
     - "*"
@@ -56,7 +54,6 @@ kind: AppProject
 metadata:
   name: apps
   namespace: argocd
-  description: 业务应用层
 spec:
   sourceRepos:
     - "*"

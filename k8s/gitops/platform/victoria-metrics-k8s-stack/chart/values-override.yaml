@@ -23,6 +23,13 @@ vmagent:
     port: "8429"
     extraArgs:
       promscrape.streamParse: "true"
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 300m
+        memory: 512Mi
 
 # ── VMSingle（指标存储 + 查询）───────────────────────────
 vmsingle:
@@ -30,8 +37,8 @@ vmsingle:
   spec:
     resources:
       requests:
-        cpu: 200m
-        memory: 1Gi
+        cpu: 100m
+        memory: 512Mi
       limits:
         cpu: 1000m
         memory: 2Gi
@@ -58,6 +65,13 @@ vlsingle:
   spec:
     retentionPeriod: "7d"
     replicaCount: 1
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 300m
+        memory: 512Mi
     storage:
       accessModes:
         - ReadWriteOnce
@@ -90,6 +104,13 @@ vmalert:
   spec:
     selectAllByDefault: true
     evaluationInterval: 30s
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 300m
+        memory: 512Mi
 
 # ── AlertManager（告警管理 + 飞书通知）────────────────
 alertmanager:
@@ -97,6 +118,13 @@ alertmanager:
   spec:
     replicaCount: 1
     selectAllByDefault: true
+    resources:
+      requests:
+        cpu: 25m
+        memory: 96Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
   config:
     route:
       receiver: feishu
@@ -129,8 +157,8 @@ kube-state-metrics:
   enabled: true
   resources:
     requests:
-      cpu: 50m
-      memory: 96Mi
+      cpu: 25m
+      memory: 64Mi
     limits:
       cpu: 200m
       memory: 256Mi
@@ -253,8 +281,8 @@ grafana:
           mountPath: /var/lib/grafana
   resources:
     requests:
-      cpu: 100m
-      memory: 512Mi
+      cpu: 50m
+      memory: 256Mi
     limits:
       cpu: 500m
       memory: 1Gi
