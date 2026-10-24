@@ -4,8 +4,11 @@
 #   1. 宿主机必须已加载 nfsd 内核模块，否则容器报 "Protocol not supported" 反复退出
 #      → install-k3s.sh 中的 setup_nfs_kernel 负责安装并加载
 #   2. clusterIP 固定为 10.43.200.10
-#      → provisioner chart 需要写死 nfs.server，动态 ClusterIP 无法在 GitOps 中引用
-#      → 10.43.0.0/16 需避开 k3s 其它 Service 占用
+#      → provisioner 的 NFS volume 由 kubelet 在宿主机侧挂载，只能用 IP，
+#        不能用 Service DNS 名（宿主机无法解析集群内 DNS）
+#      → 10.43.200.10 需避开 k3s 其它 Service 占用
+#      ⚠️ clusterIP 是不可变字段：若集群中已存在同名 Service（旧脚本安装的），
+#         ArgoCD 无法修改其 clusterIP。处置方式是删除旧 Service 让 ArgoCD 重建。
 ---
 apiVersion: v1
 kind: Namespace
