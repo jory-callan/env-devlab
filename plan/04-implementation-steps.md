@@ -127,36 +127,22 @@ L2 声明层  k8s/gitops/             ArgoCD 持续调谐
 ```bash
 # 1) 底座
 scp scripts/linux/k3s-single/install-k3s.sh root@192.168.5.143:/root/
+scp ~/.ssh/argocd_gitops root@192.168.5.143:/root/
 ssh root@192.168.5.143 'bash /root/install-k3s.sh'
 
 # 2) 引导层（Cilium → ArgoCD）
-scp -r k8s/ root@192.168.5.143:/root/
-ssh root@192.168.5.143 'bash /root/k8s/bootstrap/install.sh'
+git archive --format=tar.gz -o /tmp/k8s.tar.gz HEAD k8s/
+scp /tmp/k8s.tar.gz root@192.168.5.143:/root/
+ssh root@192.168.5.143 'tar xzf /root/k8s.tar.gz -C /root/k8s'
+ssh root@192.168.5.143 'bash /root/k8s/k8s/bootstrap/install.sh argocd \
+    --repo ssh://git@github.com/jory-callan/env-devlab.git \
+    --ssh-key /root/argocd_gitops'
 
 # 3) 观察三层收敛
 kubectl -n argocd get applications -w
 ```
 
-**验收清单**：
-
-| 项 | 判定 |
-|---|---|
-| `install-k3s.sh` 全流程无错误 | 退出码 0 |
-| `bootstrap/install.sh` 退出码 0 | 退出码 0 |
-| ArgoCD pods 全部 Running | `kubectl -n argocd get pods` |
-| root Application Healthy | `kubectl -n argocd get app root` |
-| infra-core 5 个 Application 全 Healthy | 同上 |
-| platform 1 个 Application Healthy | 同上 |
-| apps 1 个 Application Healthy | 同上 |
-| MetalLB 分配到 LB IP | `kubectl -n metallb-system get ippool` + `kubectl get svc -A` |
-| ingress-nginx 拿到 IP | `kubectl -n ingress-nginx get svc` |
-| nfs-client StorageClass 存在 | `kubectl get sc` |
-| hello-world Ingress 有证书 | `kubectl -n apps get secret hello-world-tls` |
-| self-heal 生效 | 手工改副本数 → ArgoCD 改回 |
-| k3s 日志无 reflector 刷屏 | `journalctl -u k3s` |
-
-**回滚**：任何一步失败 → `helm uninstall argocd -n argocd` + `kubectl delete ns argocd`，
-回到纯脚本模式（各组件的 `install.sh` 保留在 `k8s/bootstrap/*/` 可手工执行）。
+**完整验收清单与踩坑记录见 [`k8s/bootstrap/HANDOFF.md`](../k8s/bootstrap/HANDOFF.md)。**
 
 **实际结果**：_（待填）_
 
